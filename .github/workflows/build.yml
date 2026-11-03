@@ -1,0 +1,25 @@
+name: SimpleI2CTouchpad kext build
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build SimpleI2CTouchpad.kext (x86_64)
+        run: |
+          set -e
+          bash build.sh "$RUNNER_TEMP/out"
+          cp README.md "$RUNNER_TEMP/out/"
+          file "$RUNNER_TEMP/out/SimpleI2CTouchpad.kext/Contents/MacOS/SimpleI2CTouchpad"
+          file "$RUNNER_TEMP/out/SimpleI2CTouchpad.kext/Contents/MacOS/SimpleI2CTouchpad" | grep -q x86_64
+          # macOS refuses a kext without kmod_info ("kexts must have a _kmod_info symbol") - check it is there
+          nm "$RUNNER_TEMP/out/SimpleI2CTouchpad.kext/Contents/MacOS/SimpleI2CTouchpad" | grep -q " _kmod_info$"
+          kmutil print-diagnostics -p "$RUNNER_TEMP/out/SimpleI2CTouchpad.kext" || true
+          echo "### SimpleI2CTouchpad.kext built" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: SimpleI2CTouchpad
+          path: ${{ runner.temp }}/out
